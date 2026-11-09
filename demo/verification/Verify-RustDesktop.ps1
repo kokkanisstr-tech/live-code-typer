@@ -325,7 +325,7 @@ function Find-UiElement {
         [System.Windows.Automation.Condition]::TrueCondition)
     foreach ($element in $all) {
         $name = $element.Current.Name
-        if ($name -and $name.Contains($NameFragment) -and
+        if ($name -and $name.IndexOf($NameFragment, [System.StringComparison]::OrdinalIgnoreCase) -ge 0 -and
             ($null -eq $ControlType -or $element.Current.ControlType -eq $ControlType)) {
             return $element
         }
@@ -529,7 +529,7 @@ try {
         $saved -and $saved.snippets[0].cursor -eq 0
     } | Out-Null
 
-    $roomButton = Wait-UiElement -Root $restartRoot -NameFragment 'Онлайн-комната' -ControlType ([System.Windows.Automation.ControlType]::Button)
+    $roomButton = Wait-UiElement -Root $restartRoot -NameFragment 'Комната' -ControlType ([System.Windows.Automation.ControlType]::Button)
     $roomButton.SetFocus()
     Click-UiElement -Element $roomButton
     $connectButton = Wait-UiElement -Root $restartRoot -NameFragment 'Подключиться' -ControlType ([System.Windows.Automation.ControlType]::Button)
@@ -555,7 +555,7 @@ try {
     if ($quickTask.code -cne $roomText -or -not $quickTask.isQuickSend) {
         throw 'Сервер комнаты не сохранил точный быстрый многострочный текст.'
     }
-    Wait-UiText -Root $restartRoot -Text 'Печать продолжена.' | Out-Null
+    Wait-UiText -Root $restartRoot -Text 'Задание запущено. Через 3 секунды начнётся автоматическая печать.' | Out-Null
 
     $remoteSnippet = Wait-Until -TimeoutSeconds 8 -FailureMessage 'Клиент не сохранил полученное назначение.' -Condition {
         $saved = Get-Data
