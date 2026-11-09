@@ -384,6 +384,51 @@ function Click-UiElement {
     [RustDesktopE2E]::mouse_event(0x0004, 0, 0, 0, [UIntPtr]::Zero)
 }
 
+function Set-RoomConnectionFields {
+    param(
+        [System.Windows.Automation.AutomationElement]$Root,
+        [string]$ServerUrl,
+        [string]$RoomCode,
+        [string]$ParticipantName
+    )
+
+    $editCondition = [System.Windows.Automation.PropertyCondition]::new(
+        [System.Windows.Automation.AutomationElement]::ControlTypeProperty,
+        [System.Windows.Automation.ControlType]::Edit)
+    $edits = $Root.FindAll(
+        [System.Windows.Automation.TreeScope]::Descendants,
+        $editCondition)
+    $roomFields = @($edits | Where-Object {
+        $rectangle = $_.Current.BoundingRectangle
+        -not $rectangle.IsEmpty -and
+        -not $_.Current.IsOffscreen -and
+        $rectangle.Width -ge 180 -and
+        $rectangle.Height -ge 15 -and
+        $rectangle.Height -le 60
+    } | Sort-Object { $_.Current.BoundingRectangle.Top } | Select-Object -Last 3)
+
+    if ($roomFields.Count -ne 3) {
+        $details = @($edits | ForEach-Object {
+            $rectangle = $_.Current.BoundingRectangle
+            "name='$($_.Current.Name)' bounds=$($rectangle.X),$($rectangle.Y),$($rectangle.Width),$($rectangle.Height) offscreen=$($_.Current.IsOffscreen)"
+        }) -join '; '
+        throw "Не удалось найти три поля подключения комнаты (найдено $($roomFields.Count)). Поля ввода: $details"
+    }
+
+    $values = @($ServerUrl, $RoomCode, $ParticipantName)
+    for ($index = 0; $index -lt 3; $index++) {
+        try {
+            $pattern = $roomFields[$index].GetCurrentPattern([System.Windows.Automation.ValuePattern]::Pattern)
+            if (([System.Windows.Automation.ValuePattern]$pattern).Current.IsReadOnly) {
+                throw 'Поле доступно только для чтения.'
+            }
+            ([System.Windows.Automation.ValuePattern]$pattern).SetValue($values[$index])
+        } catch {
+            throw "Не удалось заполнить поле подключения комнаты №$($index + 1): $($_.Exception.Message)"
+        }
+    }
+}
+
 function Get-LibraryText {
     param([string]$Path)
     if (-not (Test-Path -LiteralPath $Path)) { return $null }
@@ -533,6 +578,7 @@ try {
     $roomButton.SetFocus()
     Click-UiElement -Element $roomButton
     $connectButton = Wait-UiElement -Root $restartRoot -NameFragment 'Подключиться' -ControlType ([System.Windows.Automation.ControlType]::Button)
+    Set-RoomConnectionFields -Root $restartRoot -ServerUrl $roomBaseUrl -RoomCode $roomCode -ParticipantName 'E2E участник'
     Click-UiElement -Element $connectButton
     Wait-UiText -Root $restartRoot -Text 'Подключено к комнате.' | Out-Null
 
