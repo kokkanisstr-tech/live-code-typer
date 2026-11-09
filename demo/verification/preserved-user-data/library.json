@@ -1,0 +1,97 @@
+{
+  "snippets": [
+    {
+      "id": "449ec19b-a84c-4e85-8616-9909ce32cbbf",
+      "name": "Задание 1",
+      "language": "C#",
+      "code": "using System;\nclass Kompyuter\n{\n    public virtual void Jukteu() { Console.WriteLine(\"Компьютер іске қосылды\"); }\n    public void Habarlama() { Console.WriteLine(\"Хабарлама жіберілді\"); }\n    public void Habarlama(string name) { Console.WriteLine(\"Хабарлама жіберілді: \" + name); }\n}\nclass Noutbuk : Kompyuter\n{\n    public override void Jukteu() { Console.WriteLine(\"Ноутбук іске қосылды\"); }\n}\nclass Program\n{\n    static void Main()\n    {\n        Console.OutputEncoding = System.Text.Encoding.UTF8;\n        Kompyuter baseObject = new Kompyuter();\n        baseObject.Jukteu();\n        Kompyuter childAsBase = new Noutbuk();\n        childAsBase.Jukteu();\n        Noutbuk child = new Noutbuk();\n        child.Habarlama();\n        child.Habarlama( \"Жүйе дайын\" );\n    }\n}",
+      "pinned": true,
+      "cursor": 2,
+      "revision": 0,
+      "remote_key": null,
+      "is_remote_assignment": false
+    },
+    {
+      "id": "f0dd9792-82cf-4bd1-a76e-49fdcab94080",
+      "name": "Задание 2",
+      "language": "C#",
+      "code": "using System;\nclass Bagdarlama\n{\n    public virtual void IskeQosu() { Console.WriteLine(\"Бағдарлама іске қосылды\"); }\n    public void Aqparat() { Console.WriteLine(\"Бағдарлама ақпараты\"); }\n    public void Aqparat(string name) { Console.WriteLine(\"Бағдарлама ақпараты: \" + name); }\n}\nclass OyinBagdarlamasy : Bagdarlama\n{\n    public override void IskeQosu() { Console.WriteLine(\"Ойын іске қосылды\"); }\n}\nclass Program\n{\n    static void Main()\n    {\n        Console.OutputEncoding = System.Text.Encoding.UTF8;\n        Bagdarlama baseObject = new Bagdarlama();\n        baseObject.IskeQosu();\n        Bagdarlama childAsBase = new OyinBagdarlamasy();\n        childAsBase.IskeQosu();\n        OyinBagdarlamasy child = new OyinBagdarlamasy();\n        child.Aqparat();\n        child.Aqparat( \"Ойын\" );\n    }\n}",
+      "pinned": true,
+      "cursor": 62,
+      "revision": 0,
+      "remote_key": null,
+      "is_remote_assignment": false
+    },
+    {
+      "id": "b94810ba-373c-4c7a-abbe-a85b25a6dcb1",
+      "name": "Задание 3",
+      "language": "C#",
+      "code": "using System;\nclass Server\n{\n    public virtual void JumysBastau() { Console.WriteLine(\"Сервер жұмыс істеп тұр\"); }\n    public void ServerTuraly() { Console.WriteLine(\"Сервер туралы ақпарат\"); }\n    public void ServerTuraly(string name) { Console.WriteLine(\"Сервер туралы ақпарат: \" + name); }\n}\nclass WebServer : Server\n{\n    public override void JumysBastau() { Console.WriteLine(\"Веб-сервер жұмыс істеп тұр\"); }\n}\nclass Program\n{\n    static void Main()\n    {\n        Console.OutputEncoding = System.Text.Encoding.UTF8;\n        Server baseObject = new Server();\n        baseObject.JumysBastau();\n        Server childAsBase = new WebServer();\n        childAsBase.JumysBastau();\n        WebServer child = new WebServer();\n        child.ServerTuraly();\n        child.ServerTuraly( \"Негізгі сервер\" );\n    }\n}",
+      "pinned": true,
+      "cursor": 29,
+      "revision": 0,
+      "remote_key": null,
+      "is_remote_assignment": false
+    },
+    {
+      "id": "7f13a012-3d64-4512-a9e3-fb604ad8a9a7",
+      "name": "Задание 4",
+      "language": "C#",
+      "code": "using System;\nclass Paydalanushy\n{\n    public virtual void Kiru() { Console.WriteLine(\"Қолданушы жүйеге кірді\"); }\n    public void Tanystyru() { Console.WriteLine(\"Қолданушыны таныстыру\"); }\n    public void Tanystyru(string name) { Console.WriteLine(\"Қолданушыны таныстыру: \" + name); }\n}\nclass Admin : Paydalanushy\n{\n    public override void Kiru() { Console.WriteLine(\"Әкімші жүйеге кірді\"); }\n}\nclass Program\n{\n    static void Main()\n    {\n        Console.OutputEncoding = System.Text.Encoding.UTF8;\n        Paydalanushy baseObject = new Paydalanushy();\n        baseObject.Kiru();\n        Paydalanushy childAsBase = new Admin();\n        childAsBase.Kiru();\n        Admin child = new Admin();\n        child.Tanystyru();\n        child.Tanystyru( \"Айдар\" );\n    }\n}",
+      "pinned": true,
+      "cursor": 11,
+      "revision": 0,
+      "remote_key": null,
+      "is_remote_assignment": false
+    },
+    {
+      "id": "356e4e35-a485-4e9d-bc7e-d509182bab7a",
+      "name": "Задание 5",
+      "language": "C#",
+      "code": "using System;\nclass Fail\n{\n    public virtual void Ashu() { Console.WriteLine(\"Файл ашылды\"); }\n    public void FailAqparaty() { Console.WriteLine(\"Файл ақпараты\"); }\n    public void FailAqparaty(string name) { Console.WriteLine(\"Файл ақпараты: \" + name); }\n}\nclass MatindikFail : Fail\n{\n    public override void Ashu() { Console.WriteLine(\"Мәтіндік файл ашылды\"); }\n}\nclass Program\n{\n    static void Main()\n    {\n        Console.OutputEncoding = System.Text.Encoding.UTF8;\n        Fail baseObject = new Fail();\n        baseObject.Ashu();\n        Fail childAsBase = new MatindikFail();\n        childAsBase.Ashu();\n        MatindikFail child = new MatindikFail();\n        child.FailAqparaty();\n        child.FailAqparaty( \"есеп.txt\" );\n    }\n}",
+      "pinned": true,
+      "cursor": 0,
+      "revision": 0,
+      "remote_key": null,
+      "is_remote_assignment": false
+    },
+    {
+      "id": "f1fd7bb8-3274-4fd6-8d09-93828a2c0cf7",
+      "name": "Задание 6",
+      "language": "C#",
+      "code": "using System;\nclass Derekqor\n{\n    public virtual void Kosylu() { Console.WriteLine(\"Дерекқорға қосылды\"); }\n    public void KosyluTuraly() { Console.WriteLine(\"Қосылу туралы ақпарат\"); }\n    public void KosyluTuraly(string name) { Console.WriteLine(\"Қосылу туралы ақпарат: \" + name); }\n}\nclass SQLDerekqor : Derekqor\n{\n    public override void Kosylu() { Console.WriteLine(\"SQL дерекқорына қосылды\"); }\n}\nclass Program\n{\n    static void Main()\n    {\n        Console.OutputEncoding = System.Text.Encoding.UTF8;\n        Derekqor baseObject = new Derekqor();\n        baseObject.Kosylu();\n        Derekqor childAsBase = new SQLDerekqor();\n        childAsBase.Kosylu();\n        SQLDerekqor child = new SQLDerekqor();\n        child.KosyluTuraly();\n        child.KosyluTuraly( \"SQL сервері\" );\n    }\n}",
+      "pinned": true,
+      "cursor": 0,
+      "revision": 0,
+      "remote_key": null,
+      "is_remote_assignment": false
+    },
+    {
+      "id": "2a947eb8-9479-4951-aff6-b063fca46f8a",
+      "name": "Задание 7",
+      "language": "C#",
+      "code": "using System;\nclass JelilikQurylgy\n{\n    public virtual void JeliniIskeQosu() { Console.WriteLine(\"Желілік құрылғы іске қосылды\"); }\n    public void JeliAqparaty() { Console.WriteLine(\"Желі туралы ақпарат\"); }\n    public void JeliAqparaty(string name) { Console.WriteLine(\"Желі туралы ақпарат: \" + name); }\n}\nclass Marshrutizator : JelilikQurylgy\n{\n    public override void JeliniIskeQosu() { Console.WriteLine(\"Маршрутизатор іске қосылды\"); }\n}\nclass Program\n{\n    static void Main()\n    {\n        Console.OutputEncoding = System.Text.Encoding.UTF8;\n        JelilikQurylgy baseObject = new JelilikQurylgy();\n        baseObject.JeliniIskeQosu();\n        JelilikQurylgy childAsBase = new Marshrutizator();\n        childAsBase.JeliniIskeQosu();\n        Marshrutizator child = new Marshrutizator();\n        child.JeliAqparaty();\n        child.JeliAqparaty( \"Wi-Fi желісі\" );\n    }\n}",
+      "pinned": true,
+      "cursor": 0,
+      "revision": 0,
+      "remote_key": null,
+      "is_remote_assignment": false
+    }
+  ],
+  "selected_id": "7f13a012-3d64-4512-a9e3-fb604ad8a9a7",
+  "hotkeys": {
+    "toggle_typing": "Ctrl+Alt+Space",
+    "next_snippet": "Ctrl+Alt+ArrowRight",
+    "previous_snippet": "Ctrl+Alt+ArrowLeft",
+    "restart": "Ctrl+Alt+R",
+    "toggle_pin": "Ctrl+Alt+L",
+    "emergency_stop": "Ctrl+Alt+Escape"
+  },
+  "room": {
+    "serverUrl": "http://localhost:5080",
+    "roomCode": "",
+    "participantName": "",
+    "participantId": null
+  },
+  "onboarding_complete": true
+}

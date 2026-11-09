@@ -1,0 +1,13 @@
+LiveCode Typer Demo — macOS — 0.3.3
+
+QUICK START
+1. Open LiveCode Typer Demo.app.
+2. Focus the editor or text field where the code should appear.
+3. Press Option+1 ... Option+7 to select and activate one of the seven prepared C# tasks.
+4. Press random keys; the selected task text, including spaces and newlines, is typed into the focused editor.
+5. Mouse button 4 moves forward. Mouse button 5 moves backward. Switching tasks keeps typing active.
+6. Use Ctrl+Alt+Escape for emergency stop.
+
+The seven tasks are pinned against accidental edits. Demo settings are kept beside the app in portable-data and remain separate from the main application.
+
+If macOS requests permissions, allow the demo app in Accessibility and Input Monitoring so global shortcuts and typing can work.

@@ -1,0 +1,143 @@
+name: Build original portable binaries
+
+on:
+  push:
+    branches:
+      - "**"
+    tags:
+      - "original-v*"
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: windows-x64
+            runner: windows-2025
+            target: x86_64-pc-windows-msvc
+          - name: macos-intel
+            runner: macos-15-intel
+            target: x86_64-apple-darwin
+          - name: macos-apple-silicon
+            runner: macos-15
+            target: aarch64-apple-darwin
+
+    runs-on: ${{ matrix.runner }}
+    defaults:
+      run:
+        working-directory: original
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust target
+        run: rustup target add ${{ matrix.target }}
+
+      - name: Build application and room server
+        run: cargo build --release --locked --target ${{ matrix.target }} --bins
+
+      - uses: actions/setup-node@v4
+        if: runner.os == 'Windows'
+        with:
+          node-version: 22
+
+      - name: Run headless room E2E on Windows
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: ./verification/Verify-RustOnlineRoom.ps1 -ServerPath "target/${{ matrix.target }}/release/live-code-room-server.exe"
+
+      - name: Run portable-data migration E2E on Windows
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: ./verification/Verify-RustMigration.ps1 -AppPath "target/${{ matrix.target }}/release/live-code-typer.exe"
+
+      - name: Run room-data migration E2E on Windows
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: ./verification/Verify-RustRoomMigration.ps1 -ServerPath "target/${{ matrix.target }}/release/live-code-room-server.exe"
+
+      - name: Package Windows binaries
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $folder = "dist/live-code-typer-${{ matrix.name }}"
+          New-Item -ItemType Directory -Path $folder -Force | Out-Null
+          Copy-Item "target/${{ matrix.target }}/release/live-code-typer.exe" $folder
+          Copy-Item "target/${{ matrix.target }}/release/live-code-room-server.exe" $folder
+          Copy-Item README.md $folder
+          Copy-Item packaging/windows/START-HERE.txt $folder
+          Copy-Item packaging/windows/Start-Room-Server.cmd $folder
+          New-Item -ItemType Directory -Path "$folder/portable-data" -Force | Out-Null
+          Copy-Item packaging/windows/portable-data/README.txt "$folder/portable-data"
+          ./verification/Verify-RoomLauncher.ps1 -LauncherPath "$folder/Start-Room-Server.cmd" -UseDefaultPort
+          ./verification/Verify-RoomLauncher.ps1 -LauncherPath "$folder/Start-Room-Server.cmd"
+          Compress-Archive -Path "$folder/*" -DestinationPath "dist/live-code-typer-${{ matrix.name }}.zip"
+
+      - name: Package macOS binaries
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          folder="dist/live-code-typer-${{ matrix.name }}"
+          app="$folder/LiveCode Typer.app"
+          mkdir -p "$app/Contents/MacOS" "$folder/portable-data"
+          cp "target/${{ matrix.target }}/release/live-code-typer" "$app/Contents/MacOS/live-code-typer"
+          chmod +x "$app/Contents/MacOS/live-code-typer"
+          cp "target/${{ matrix.target }}/release/live-code-room-server" "$folder/live-code-room-server"
+          chmod +x "$folder/live-code-room-server"
+          cp README.md packaging/macos/START-HERE.txt packaging/macos/Start-Room-Server.command "$folder/"
+          cp packaging/macos/portable-data/README.txt "$folder/portable-data/"
+          chmod +x "$folder/Start-Room-Server.command"
+          cat > "$app/Contents/Info.plist" <<'PLIST'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>CFBundleExecutable</key><string>live-code-typer</string>
+            <key>CFBundleIdentifier</key><string>org.livecodetyper.app</string>
+            <key>CFBundleName</key><string>LiveCode Typer</string>
+            <key>CFBundlePackageType</key><string>APPL</string>
+            <key>CFBundleVersion</key><string>0.3.0</string>
+            <key>LSMinimumSystemVersion</key><string>12.0</string>
+            <key>NSHighResolutionCapable</key><true/>
+          </dict>
+          </plist>
+          PLIST
+          codesign --force --deep --sign - "$app"
+          codesign --verify --deep --strict "$app"
+          tar -czf "dist/live-code-typer-${{ matrix.name }}.tar.gz" -C dist "live-code-typer-${{ matrix.name }}"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: live-code-typer-${{ matrix.name }}
+          path: original/dist/live-code-typer-${{ matrix.name }}.*
+          if-no-files-found: error
+          retention-days: 14
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/original-v')
+    needs: build
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: release-assets
+          merge-multiple: true
+      - name: Publish downloadable release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          tag="$GITHUB_REF_NAME"
+          if gh release view "$tag" >/dev/null 2>&1; then
+            gh release upload "$tag" release-assets/* --clobber
+          else
+            gh release create "$tag" release-assets/* --title "LiveCode Typer original $tag" --generate-notes
+          fi

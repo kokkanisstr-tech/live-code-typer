@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0c0d0f">
+  <title>LiveCode Typer | общая комната</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <main class="page">
+    <header class="topbar">
+      <a class="brand" href="/" aria-label="LiveCode Typer | общая комната">
+        <svg class="brand-mark" viewBox="0 0 36 36" aria-hidden="true">
+          <path d="m13 10-7 8 7 8M23 10l7 8-7 8" />
+          <path class="brand-cursor" d="M18 11v14" />
+        </svg>
+        <span class="brand-copy">
+          <strong>LiveCode Typer</strong>
+          <span>Общая комната</span>
+        </span>
+      </a>
+      <div id="connectionBadge" class="connection-badge" role="status" aria-live="polite">
+        <span class="dot" aria-hidden="true"></span>
+        <span>Не подключено</span>
+      </div>
+    </header>
+
+    <section id="joinPanel" class="join-screen">
+      <div class="join-intro">
+        <p class="context-line">Рабочее место класса</p>
+        <h1>Войдите в общую комнату</h1>
+        <p class="join-lede">Откройте ссылку комнаты, введите имя и выберите участника, которому отправить задание или текст.</p>
+        <ol class="join-steps">
+          <li>Ведущий отправляет одну ссылку комнаты.</li>
+          <li>Откройте её на Windows или Mac и введите имя.</li>
+          <li>Выберите участника и отправьте ему код или текст.</li>
+        </ol>
+        <p class="permission-note">Комната работает, пока включён сервер и устройства находятся в одной сети. Для печати текста в редакторе получатель запускает настольный LiveCode Typer; браузер только управляет заданиями.</p>
+      </div>
+
+      <section class="join-card" aria-labelledby="joinTitle">
+        <div class="join-card-heading">
+          <p class="context-line">Подключение</p>
+          <h2 id="joinTitle">Войти в комнату</h2>
+        </div>
+        <form id="joinForm" class="form-stack">
+          <label id="roomCodeField" for="roomCode">Код комнаты
+            <input id="roomCode" autocomplete="off" maxlength="32" placeholder="Нет ссылки? Введите код ведущего">
+          </label>
+          <label for="actorName">Ваше имя
+            <input id="actorName" required autocomplete="nickname" maxlength="40" placeholder="Например, Саят">
+          </label>
+          <button class="primary-button" type="submit">Войти в комнату <span aria-hidden="true">→</span></button>
+        </form>
+        <p id="joinError" class="error-message" role="status" aria-live="polite"></p>
+      </section>
+    </section>
+
+    <section id="dashboard" class="dashboard hidden">
+      <div class="room-heading">
+        <div class="room-heading-copy">
+          <p class="context-line">Комната <code id="roomCodeLabel"></code></p>
+          <h1>Кому и что отправить?</h1>
+          <p class="muted">Вы вошли как <strong id="actorLabel"></strong>. У всех одинаковые права.</p>
+        </div>
+        <div class="room-heading-actions">
+          <button id="copyInviteButton" class="secondary-button" type="button">Скопировать ссылку</button>
+          <button id="disconnectButton" class="quiet-button" type="button">Выйти</button>
+        </div>
+      </div>
+      <p id="inviteStatus" class="invite-status" role="status" aria-live="polite"></p>
+
+      <div id="workbenchGrid" class="dashboard-grid">
+        <div class="left-column">
+          <aside class="panel participants-panel" aria-labelledby="participantsTitle">
+            <div class="panel-heading participants-heading">
+              <div>
+                <h2 id="participantsTitle">Участники</h2>
+                <p class="section-hint">Выберите получателя</p>
+              </div>
+              <span id="participantCount" class="count-value">0</span>
+            </div>
+            <div id="participantsList" class="participants-list" aria-label="Участники комнаты"></div>
+            <p id="emptyParticipants" class="empty-state">Откройте LiveCode Typer на устройстве участника. Подключившиеся появятся здесь.</p>
+            <div class="participant-actions" aria-label="Команды выбранному участнику">
+              <button id="pauseButton" class="secondary-button" type="button" disabled>Пауза</button>
+              <button id="restartButton" class="secondary-button" type="button" disabled>С начала</button>
+            </div>
+          </aside>
+
+          <section class="panel log-panel" aria-labelledby="historyTitle">
+            <div class="panel-heading">
+              <div>
+                <h2 id="historyTitle">История комнаты</h2>
+                <p class="section-hint">Назначения, команды и отправленные тексты</p>
+              </div>
+            </div>
+            <div id="actionsList" class="actions-list"></div>
+          </section>
+        </div>
+
+        <section class="main-column" aria-label="Назначение и библиотека">
+          <section class="panel quick-send-panel" aria-labelledby="sendTitle">
+            <div class="panel-heading quick-send-heading">
+              <div>
+                <h2 id="sendTitle">Передать текст</h2>
+                <p class="section-hint">Любой текст или код сразу попадёт в редактор участника</p>
+              </div>
+              <div class="quick-send-heading-actions">
+                <button id="showLibraryButton" class="back-button" type="button">Задания</button>
+                <button id="backToParticipants" class="back-button" type="button">← Участники</button>
+              </div>
+            </div>
+
+            <div class="recipient-line" aria-live="polite">
+              <span id="selectedParticipantInitial" class="recipient-initial" aria-hidden="true">?</span>
+              <span class="recipient-copy">
+                <span class="recipient-label">Получатель</span>
+                <strong id="selectedParticipantName">Выберите участника</strong>
+                <span id="selectedParticipantAssignment" class="recipient-assignment">Текущее назначение: нет</span>
+              </span>
+            </div>
+
+            <label class="visually-hidden" for="quickText">Текст или код для отправки</label>
+            <textarea id="quickText" class="quick-send-text" rows="7" maxlength="1000000"
+                      spellcheck="false" placeholder="Вставьте сюда текст или код…"></textarea>
+            <div class="quick-send-footer">
+              <span id="quickTextCount" class="character-count">0 / 1 000 000</span>
+              <button id="quickSendButton" class="primary-button" type="button" disabled>Передать текст</button>
+            </div>
+            <p class="quick-send-note">Отправка заменит текущее назначение. Новые строки, пробелы и символы сохраняются.</p>
+            <p id="quickSendStatus" class="quick-send-status" role="status" aria-live="polite"></p>
+          </section>
+
+          <section class="panel library-panel" aria-labelledby="tasksTitle">
+            <div class="panel-heading task-heading">
+              <div>
+                <h2 id="tasksTitle">Библиотека заданий</h2>
+                <p class="section-hint">Подготовленные фрагменты для комнаты</p>
+              </div>
+              <button id="newTaskButton" class="secondary-button add-button" type="button">Добавить задание</button>
+            </div>
+            <div class="library-back-row">
+              <button id="backToSendButton" class="back-button" type="button">← К отправке</button>
+            </div>
+            <div id="tasksList" class="tasks-list"></div>
+            <p id="emptyTasks" class="empty-state">Заданий пока нет. Добавьте код, чтобы быстро назначать его участникам.</p>
+          </section>
+
+        </section>
+      </div>
+    </section>
+  </main>
+
+  <dialog id="taskDialog" class="task-dialog" aria-labelledby="taskDialogTitle">
+    <form id="taskForm" method="dialog">
+      <div class="dialog-heading">
+        <div>
+          <p class="context-line">Библиотека комнаты</p>
+          <h2 id="taskDialogTitle">Новое задание</h2>
+        </div>
+        <button id="closeTaskDialog" class="icon-button" type="button" aria-label="Закрыть">×</button>
+      </div>
+      <input id="taskId" type="hidden">
+      <div class="form-row">
+        <label for="taskNumber">Номер
+          <input id="taskNumber" required maxlength="20" placeholder="12">
+        </label>
+        <label for="taskLanguage">Язык
+          <select id="taskLanguage">
+            <option>C#</option><option>Python</option><option>JavaScript</option>
+            <option>TypeScript</option><option>HTML</option><option>CSS</option>
+            <option>SQL</option><option>Java</option><option>C++</option><option>Текст</option>
+          </select>
+        </label>
+      </div>
+      <label for="taskTitle">Название
+        <input id="taskTitle" required maxlength="100" placeholder="Например, Сумма двух чисел">
+      </label>
+      <label for="taskCode">Код или текст задания
+        <textarea id="taskCode" rows="14" spellcheck="false" placeholder="Вставьте подготовленный текст или код"></textarea>
+      </label>
+      <p id="taskError" class="error-message" role="status" aria-live="polite"></p>
+      <div class="dialog-actions">
+        <button id="cancelTaskButton" class="quiet-button" type="button">Отмена</button>
+        <button class="primary-button" type="submit">Сохранить задание</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script src="/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,8 @@
+/original/target/
+/original/dist/
+/original/portable-data/
+/demo/target/
+/demo/dist/
+/demo/portable-data/
+**/.DS_Store
+**/Thumbs.db

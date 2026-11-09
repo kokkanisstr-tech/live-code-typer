@@ -1,0 +1,6 @@
+/target/
+/dist/
+/portable-data/
+/room-data/
+/formal/states/
+.DS_Store

@@ -1,0 +1,51 @@
+[package]
+name = "live-code-typer"
+version = "0.3.0"
+edition = "2024"
+rust-version = "1.95"
+description = "Portable LiveCode Typer desktop client and LAN room server"
+license = "MIT"
+default-run = "live-code-typer"
+
+[[bin]]
+name = "live-code-typer"
+path = "src/main.rs"
+
+[[bin]]
+name = "live-code-room-server"
+path = "src/bin/room_server.rs"
+
+[[example]]
+name = "room_typing_e2e"
+path = "verification/RoomTypingE2e.rs"
+
+[dependencies]
+anyhow = "1"
+axum = "0.8"
+chrono = { version = "0.4", features = ["serde"] }
+crossbeam-channel = "0.5"
+directories = "6"
+eframe = { version = "0.37", default-features = false, features = ["accesskit", "clipboard", "default_fonts", "glow", "wayland", "x11"] }
+enigo = "0.6.1"
+global-hotkey = "0.9"
+rand = "0.9"
+reqwest = { version = "0.12", default-features = false, features = ["blocking", "json", "rustls-tls"] }
+rdev = { version = "0.5.3", features = ["unstable_grab"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+thiserror = "2"
+tempfile = "3"
+tokio = { version = "1", features = ["macros", "net", "rt-multi-thread", "signal", "sync"] }
+unicode-segmentation = "1"
+uuid = { version = "1", features = ["serde", "v4"] }
+
+[target.'cfg(windows)'.dependencies]
+windows-sys = { version = "0.61", features = ["Win32_Foundation", "Win32_UI_WindowsAndMessaging"] }
+
+[target.'cfg(target_os = "macos")'.dependencies]
+core-graphics = { version = "0.19", features = ["highsierra"] }
+
+[profile.release]
+lto = "thin"
+codegen-units = 1
+strip = true
