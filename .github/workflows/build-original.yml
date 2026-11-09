@@ -62,6 +62,26 @@ jobs:
         shell: pwsh
         run: ./verification/Verify-RustRoomMigration.ps1 -ServerPath "target/${{ matrix.target }}/release/live-code-room-server.exe"
 
+      - uses: msys2/setup-msys2@v2
+        if: runner.os == 'Windows'
+        id: mesa
+        with:
+          msystem: UCRT64
+          update: true
+          install: mingw-w64-ucrt-x86_64-mesa
+
+      - name: Enable software OpenGL for desktop E2E
+        if: runner.os == 'Windows'
+        shell: pwsh
+        env:
+          MSYS2_LOCATION: ${{ steps.mesa.outputs.msys2-location }}
+        run: |
+          $mesaBin = Join-Path $env:MSYS2_LOCATION 'ucrt64/bin'
+          $appDirectory = (Resolve-Path 'target/${{ matrix.target }}/release').Path
+          Copy-Item (Join-Path $mesaBin 'opengl32.dll') $appDirectory
+          Add-Content -Path $env:GITHUB_PATH -Value $mesaBin
+          Add-Content -Path $env:GITHUB_ENV -Value 'GALLIUM_DRIVER=llvmpipe'
+
       - name: Run desktop typing and hotkey E2E on Windows
         if: runner.os == 'Windows'
         shell: pwsh
