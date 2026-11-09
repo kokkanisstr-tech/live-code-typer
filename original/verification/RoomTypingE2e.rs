@@ -58,7 +58,7 @@ fn main() -> Result<(), String> {
     let mut library = Library::default();
     library.room = settings;
     let start_result = library.apply_remote_assignment(Some(&task), ROOM_ASSIGNMENT_START_DELAY);
-    if start_result != Some(InputAction::Started) || !library.automatic_typing {
+    if start_result != Some(InputAction::Started) || !library.typing_state.is_automatic() {
         return Err("Receiving the assignment did not enable automatic typing.".into());
     }
 
@@ -92,11 +92,14 @@ fn main() -> Result<(), String> {
         _ => return Err("The assignment started before the editor-switch delay elapsed.".into()),
     }
 
-    let start_at = shared_library
+    let start_at = match shared_library
         .lock()
         .map_err(|_| "Typing state lock was poisoned.".to_owned())?
-        .automatic_start_at
-        .ok_or_else(|| "The assignment has no automatic start time.".to_owned())?;
+        .typing_state
+    {
+        live_code_typer::core::TypingState::WaitingUntil(deadline) => deadline,
+        _ => return Err("The assignment has no automatic start time.".into()),
+    };
     thread::sleep(start_at.saturating_duration_since(Instant::now()));
     loop {
         match input::type_next(&mut sink, &shared_library, &mut cache, InputMode::Automatic)
@@ -123,8 +126,7 @@ fn main() -> Result<(), String> {
     let final_state = shared_library
         .lock()
         .map_err(|_| "Typing state lock was poisoned.".to_owned())?;
-    if final_state.typing
-        || final_state.automatic_typing
+    if final_state.typing_state.is_active()
         || final_state
             .selected()
             .is_none_or(|snippet| snippet.cursor != snippet.grapheme_count() || !snippet.pinned)

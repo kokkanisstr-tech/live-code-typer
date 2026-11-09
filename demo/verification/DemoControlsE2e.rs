@@ -53,7 +53,9 @@ fn main() -> Result<(), String> {
     {
         return Err("Inactive mouse navigation changed the selected task.".into());
     }
-    if library.select_and_start(2) != Some(InputAction::Started) || !library.typing {
+    if library.select_and_start(2) != Some(InputAction::Started)
+        || !library.typing_state.is_active()
+    {
         return Err("Alt+3 did not select and start task 3.".into());
     }
     let third_task = library.selected_id;
@@ -65,7 +67,7 @@ fn main() -> Result<(), String> {
     if !navigate_demo_mouse(&mut library, 4) {
         return Err("Mouse button 4 was not handled during typing.".into());
     }
-    if !library.typing
+    if !library.typing_state.is_active()
         || library
             .selected()
             .is_none_or(|snippet| snippet.name != "Задание 4")
@@ -75,7 +77,7 @@ fn main() -> Result<(), String> {
     if !navigate_demo_mouse(&mut library, 4) {
         return Err("Second mouse button 4 press was not handled.".into());
     }
-    if !library.typing
+    if !library.typing_state.is_active()
         || library
             .selected()
             .is_none_or(|snippet| snippet.name != "Задание 5")
@@ -85,7 +87,7 @@ fn main() -> Result<(), String> {
     if !navigate_demo_mouse(&mut library, 5) {
         return Err("Mouse button 5 was not handled during typing.".into());
     }
-    if !library.typing
+    if !library.typing_state.is_active()
         || library
             .selected()
             .is_none_or(|snippet| snippet.name != "Задание 4")
@@ -93,7 +95,7 @@ fn main() -> Result<(), String> {
         return Err("The backward mouse press stopped typing or missed task 4.".into());
     }
     library.select_and_start(6);
-    if !library.typing
+    if !library.typing_state.is_active()
         || library
             .selected()
             .is_none_or(|snippet| snippet.name != "Задание 7")
