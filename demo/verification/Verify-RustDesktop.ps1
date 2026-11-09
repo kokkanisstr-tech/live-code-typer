@@ -92,24 +92,39 @@ function Get-Data {
 }
 
 function Write-Library {
-    param([string]$Text, [int]$Cursor = 0)
+    param([string]$Text, [int]$Cursor = 0, [switch]$DemoHotkey)
     New-Item -ItemType Directory -Path $dataFolder -Force | Out-Null
     $path = [System.IO.Path]::Combine($dataFolder, 'library.json')
+    $secondSnippetId = if ($DemoHotkey) { [guid]::NewGuid().ToString() } else { $null }
+    $snippets = @(
+        [ordered]@{
+            id = $snippetId
+            name = 'Задание 1'
+            language = 'Текст'
+            code = $Text
+            pinned = [bool]$DemoHotkey
+            cursor = $Cursor
+            revision = 0
+            remote_key = $null
+            is_remote_assignment = $false
+        }
+    )
+    if ($DemoHotkey) {
+        $snippets += [ordered]@{
+            id = $secondSnippetId
+            name = 'Задание 2 — выбрать неправильно'
+            language = 'Текст'
+            code = 'НЕ ДОЛЖНО НАПЕЧАТАТЬСЯ'
+            pinned = $true
+            cursor = 0
+            revision = 0
+            remote_key = $null
+            is_remote_assignment = $false
+        }
+    }
     $library = [ordered]@{
-        snippets = @(
-            [ordered]@{
-                id = $snippetId
-                name = 'Проверка пробела и Enter'
-                language = 'Текст'
-                code = $Text
-                pinned = $false
-                cursor = $Cursor
-                revision = 0
-                remote_key = $null
-                is_remote_assignment = $false
-            }
-        )
-        selected_id = $snippetId
+        snippets = $snippets
+        selected_id = if ($DemoHotkey) { $secondSnippetId } else { $snippetId }
         hotkeys = [ordered]@{
             toggle_typing = 'Ctrl+Alt+Space'
             next_snippet = 'Ctrl+Alt+ArrowRight'
@@ -381,11 +396,21 @@ try {
     if (-not (Test-Path -LiteralPath $targetPath -PathType Leaf)) {
         throw 'Для настоящего текстового окна нужен Windows PowerShell с поддержкой WPF.'
     }
-    Write-Library -Text ("A B" + [char]10 + 'C')
+    Write-Library -Text ("A B" + [char]10 + 'C') -DemoHotkey:$DemoHotkey
     Start-App
     if ($DemoHotkey) {
+        $mainRoot = [System.Windows.Automation.AutomationElement]::FromHandle($appProcess.MainWindowHandle)
+        $toggleButton = Wait-UiElement -Root $mainRoot -NameFragment 'Включить печать' -ControlType ([System.Windows.Automation.ControlType]::Button)
+        $toggleButton.SetFocus()
+        Click-UiElement -Element $toggleButton
+        Start-Sleep -Milliseconds 250
         Start-TextTarget -OutputPath $firstOutput
         Send-Combination -Modifiers ([byte[]](0x12)) -Key 0x31
+        Wait-UiText -Root $mainRoot -Text 'Задание №1 включено. Печать продолжается.' | Out-Null
+        foreach ($index in 1..5) {
+            Send-RandomKey
+            Start-Sleep -Milliseconds 120
+        }
         try {
             Wait-Until -TimeoutSeconds 8 -FailureMessage 'Alt+1 не напечатал задание в активном внешнем поле.' -Condition {
                 (Get-LibraryText -Path $firstOutput) -ceq ("A B" + [char]10 + 'C')
@@ -395,7 +420,7 @@ try {
             $saved = Get-Data | ConvertTo-Json -Depth 10 -Compress
             throw "Демо E2E Alt+1 и фонового набора: $($_.Exception.Message) Получено [$actual]; состояние [$saved]."
         }
-        Write-Output 'PASS: Alt+1 запустил автоматический набор в активном внешнем окне; пробел и Enter введены.'
+        Write-Output 'PASS: Alt+1 switched from task 2 to task 1 without stopping typing; spaces and Enter were typed into the active external window.'
         return
     }
     $mainRoot = [System.Windows.Automation.AutomationElement]::FromHandle($appProcess.MainWindowHandle)
@@ -424,7 +449,7 @@ try {
     $script:targetProcess = $null
     $root = [System.Windows.Automation.AutomationElement]::FromHandle($appProcess.MainWindowHandle)
     [RustDesktopE2E]::SetForegroundWindow($appProcess.MainWindowHandle) | Out-Null
-    $settingsButton = Wait-UiElement -Root $root -NameFragment 'Настройки' -ControlType ([System.Windows.Automation.ControlType]::Button)
+    $settingsButton = Wait-UiElement -Root $root -NameFragment 'Горячие клавиши' -ControlType ([System.Windows.Automation.ControlType]::Button)
     $settingsButton.SetFocus()
     Click-UiElement -Element $settingsButton
     $assignButton = Wait-UiElement -Root $root -NameFragment 'Назначить' -ControlType ([System.Windows.Automation.ControlType]::Button)
@@ -468,7 +493,7 @@ try {
         [System.Text.UTF8Encoding]::new($false))
     Start-App
     $restartRoot = [System.Windows.Automation.AutomationElement]::FromHandle($appProcess.MainWindowHandle)
-    $null = Wait-UiElement -Root $restartRoot -NameFragment 'Настройки' -ControlType ([System.Windows.Automation.ControlType]::Button)
+    $null = Wait-UiElement -Root $restartRoot -NameFragment 'Горячие клавиши' -ControlType ([System.Windows.Automation.ControlType]::Button)
     Start-TextTarget -OutputPath $secondOutput
     Send-Combination -Modifiers ([byte[]](0x11, 0x10)) -Key 0x72
     Start-Sleep -Milliseconds 500
