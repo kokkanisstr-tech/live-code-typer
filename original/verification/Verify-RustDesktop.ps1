@@ -580,11 +580,21 @@ try {
     $connectButton = Wait-UiElement -Root $restartRoot -NameFragment 'Подключиться' -ControlType ([System.Windows.Automation.ControlType]::Button)
     Set-RoomConnectionFields -Root $restartRoot -ServerUrl $roomBaseUrl -RoomCode $roomCode -ParticipantName 'E2E участник'
     Click-UiElement -Element $connectButton
-    Wait-UiText -Root $restartRoot -Text 'Подключено к комнате.' | Out-Null
-
-    $participantId = Wait-Until -TimeoutSeconds 8 -FailureMessage 'Клиент не сохранил ID участника комнаты.' -Condition {
-        $saved = Get-Data
-        if ($saved -and $saved.room.participantId) { $saved.room.participantId }
+    try {
+        $participantId = Wait-Until -TimeoutSeconds 8 -FailureMessage 'Клиент не сохранил ID участника комнаты.' -Condition {
+            $saved = Get-Data
+            if ($saved -and $saved.room.participantId) { $saved.room.participantId }
+        }
+    } catch {
+        $roomButton = Wait-UiElement -Root $restartRoot -NameFragment 'Комната' -ControlType ([System.Windows.Automation.ControlType]::Button)
+        Click-UiElement -Element $roomButton
+        Start-Sleep -Milliseconds 300
+        $all = $restartRoot.FindAll(
+            [System.Windows.Automation.TreeScope]::Descendants,
+            [System.Windows.Automation.Condition]::TrueCondition)
+        $status = @($all | ForEach-Object { $_.Current.Name } | Where-Object { $_ }) -join ' | '
+        $saved = Get-Data | ConvertTo-Json -Depth 10 -Compress
+        throw "Клиент комнаты не сохранил ID: $($_.Exception.Message) библиотека [$saved]; интерфейс [$status]."
     }
     $roomState = Invoke-RestMethod -Uri "$roomBaseUrl/api/room?roomCode=$roomCode" -TimeoutSec 5
     $serverParticipant = @($roomState.participants | Where-Object { $_.id -eq $participantId }) | Select-Object -First 1
