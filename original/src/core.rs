@@ -74,11 +74,34 @@ pub struct Library {
     #[serde(default)]
     pub onboarding_complete: bool,
     #[serde(skip)]
-    pub typing: bool,
-    #[serde(skip)]
-    pub automatic_typing: bool,
-    #[serde(skip)]
-    pub automatic_start_at: Option<Instant>,
+    pub typing_state: TypingState,
+}
+
+/// Runtime typing modes. The variants make impossible combinations such as
+/// "stopped but automatic" or "manual with a scheduled start" unrepresentable.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub enum TypingState {
+    #[default]
+    Idle,
+    SignalDriven,
+    WaitingUntil(Instant),
+    Automatic,
+}
+
+impl TypingState {
+    pub fn is_active(self) -> bool {
+        !matches!(self, Self::Idle)
+    }
+    pub fn is_automatic(self) -> bool {
+        matches!(self, Self::WaitingUntil(_) | Self::Automatic)
+    }
+    pub fn automatic_ready(self, now: Instant) -> bool {
+        match self {
+            Self::Automatic => true,
+            Self::WaitingUntil(deadline) => now >= deadline,
+            _ => false,
+        }
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -125,9 +148,7 @@ impl Default for Library {
             hotkeys: Hotkeys::default(),
             room: RoomSettings::default(),
             onboarding_complete: false,
-            typing: false,
-            automatic_typing: false,
-            automatic_start_at: None,
+            typing_state: TypingState::Idle,
         }
     }
 }
@@ -216,9 +237,16 @@ impl Library {
 
     fn start_with_mode(&mut self, automatic: bool, delay: Duration) -> InputAction {
         if self.selected().and_then(Snippet::next_grapheme).is_some() {
-            self.typing = true;
-            self.automatic_typing = automatic;
-            self.automatic_start_at = automatic.then(|| Instant::now() + delay);
+            self.typing_state = if automatic {
+                let deadline = Instant::now() + delay;
+                if delay.is_zero() {
+                    TypingState::Automatic
+                } else {
+                    TypingState::WaitingUntil(deadline)
+                }
+            } else {
+                TypingState::SignalDriven
+            };
             InputAction::Started
         } else {
             self.pause();
@@ -233,13 +261,11 @@ impl Library {
         cursor: usize,
         finished: bool,
     ) -> bool {
-        if !self.typing || self.selected_id != snippet_id {
+        if !self.typing_state.is_active() || self.selected_id != snippet_id {
             return false;
         }
         let Some(snippet) = self.selected_mut() else {
-            self.typing = false;
-            self.automatic_typing = false;
-            self.automatic_start_at = None;
+            self.typing_state = TypingState::Idle;
             return false;
         };
         if snippet.revision != revision || snippet.cursor != cursor {
@@ -247,17 +273,13 @@ impl Library {
         }
         snippet.cursor += 1;
         if finished {
-            self.typing = false;
-            self.automatic_typing = false;
-            self.automatic_start_at = None;
+            self.typing_state = TypingState::Idle;
         }
         true
     }
 
     pub fn pause(&mut self) {
-        self.typing = false;
-        self.automatic_typing = false;
-        self.automatic_start_at = None;
+        self.typing_state = TypingState::Idle;
     }
 
     pub fn reset(&mut self) {

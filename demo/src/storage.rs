@@ -222,9 +222,7 @@ fn deserialize_legacy(bytes: &[u8]) -> Result<Library> {
             participant_id: legacy.participant_id,
         },
         onboarding_complete: false,
-        typing: false,
-        automatic_typing: false,
-        automatic_start_at: None,
+        typing_state: Default::default(),
     })
 }
 

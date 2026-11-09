@@ -646,19 +646,14 @@ pub(crate) fn type_next(
     let mut library = library
         .lock()
         .unwrap_or_else(|poisoned| poisoned.into_inner());
-    if !library.typing {
+    if !library.typing_state.is_active() {
         return Ok(TypeResult::Idle);
     }
     match mode {
-        InputMode::KeyboardSignal if library.automatic_typing => {
+        InputMode::KeyboardSignal if library.typing_state.is_automatic() => {
             return Ok(TypeResult::ConsumeSignal);
         }
-        InputMode::Automatic
-            if !library.automatic_typing
-                || library
-                    .automatic_start_at
-                    .is_some_and(|start_at| Instant::now() < start_at) =>
-        {
+        InputMode::Automatic if !library.typing_state.automatic_ready(Instant::now()) => {
             return Ok(TypeResult::Idle);
         }
         _ => {}

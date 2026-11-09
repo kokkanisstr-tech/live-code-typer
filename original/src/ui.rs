@@ -367,13 +367,13 @@ impl PortableApp {
             .unwrap_or_else(|poisoned| poisoned.into_inner());
         match action {
             HotkeyAction::ToggleTyping => {
-                if library.typing {
+                if library.typing_state.is_active() {
                     library.pause();
                     self.status = "Печать приостановлена".into();
                 } else {
                     match library.start() {
                         InputAction::Started => {
-                            self.status = if library.automatic_typing {
+                            self.status = if library.typing_state.is_automatic() {
                                 "Автоматическая печать задания включена. Перейдите в нужное окно."
                                     .into()
                             } else {
@@ -587,7 +587,7 @@ impl PortableApp {
             ui.label("Создай новый фрагмент, чтобы вставить код или текст.");
             return;
         };
-        let is_typing = library.typing;
+        let is_typing = library.typing_state.is_active();
 
         if !library.onboarding_complete || self.help_open {
             app_card(RAISED).show(ui, |ui| {
@@ -709,11 +709,11 @@ impl PortableApp {
                     "Включить печать"
                 };
                 if primary_button(ui, toggle_label).clicked() {
-                    if library.typing {
+                    if library.typing_state.is_active() {
                         library.pause();
                         self.status = "Печать приостановлена".into();
                     } else if matches!(library.start(), InputAction::Started) {
-                        self.status = if library.automatic_typing {
+                        self.status = if library.typing_state.is_automatic() {
                             "Задание печатается автоматически. Перейди в нужное окно.".into()
                         } else {
                             "Печать включена. Перейди в нужное окно и нажимай любые клавиши.".into()
@@ -1365,22 +1365,24 @@ impl eframe::App for PortableApp {
                             });
                         }
                         ui.label(
-                            egui::RichText::new(if library.typing {
+                            egui::RichText::new(if library.typing_state.is_active() {
                                 "Печать включена"
                             } else {
                                 "Печать выключена"
                             })
-                            .color(if library.typing {
-                                MINT
-                            } else {
-                                MUTED
-                            }),
+                            .color(
+                                if library.typing_state.is_active() {
+                                    MINT
+                                } else {
+                                    MUTED
+                                },
+                            ),
                         );
                     });
                 });
             });
 
-        self.render_footer(root, library.typing, &library.hotkeys);
+        self.render_footer(root, library.typing_state.is_active(), &library.hotkeys);
 
         if wide_layout {
             egui::Panel::left("snippet-library")
@@ -1444,7 +1446,7 @@ impl eframe::App for PortableApp {
                     .show(ui, |ui| self.render_editor(ui, &mut library));
             });
 
-        if library.typing {
+        if library.typing_state.is_active() {
             context.request_repaint_after(Duration::from_millis(25));
         }
         drop(library);
