@@ -452,13 +452,13 @@ try {
     $settingsButton = Wait-UiElement -Root $root -NameFragment 'Горячие клавиши' -ControlType ([System.Windows.Automation.ControlType]::Button)
     $settingsButton.SetFocus()
     Click-UiElement -Element $settingsButton
-    $assignButton = Wait-UiElement -Root $root -NameFragment 'Назначить' -ControlType ([System.Windows.Automation.ControlType]::Button)
+    $assignButton = Wait-UiElement -Root $root -NameFragment 'Изменить' -ControlType ([System.Windows.Automation.ControlType]::Button)
     $assignButton.SetFocus()
     Click-UiElement -Element $assignButton
     Start-Sleep -Milliseconds 300
     Send-Combination -Modifiers ([byte[]](0x11, 0x10)) -Key 0x72
     Wait-UiText -Root $root -Text 'Ctrl+Shift+F3' | Out-Null
-    $saveButton = Wait-UiElement -Root $root -NameFragment 'Сохранить' -ControlType ([System.Windows.Automation.ControlType]::Button)
+    $saveButton = Wait-UiElement -Root $root -NameFragment 'Сохранить сочетания' -ControlType ([System.Windows.Automation.ControlType]::Button)
     $saveButton.SetFocus()
     Click-UiElement -Element $saveButton
     try {
