@@ -53,6 +53,19 @@ pub struct InputHub {
     events: Receiver<InputEvent>,
 }
 
+fn enigo_settings() -> Settings {
+    let mut settings = Settings::default();
+    #[cfg(windows)]
+    {
+        settings.windows_dw_extra_info = Some(windows_hook::EVENT_MARKER);
+    }
+    #[cfg(target_os = "macos")]
+    {
+        settings.event_source_user_data = Some(macos_hook::EVENT_MARKER);
+    }
+    settings
+}
+
 impl InputHub {
     pub fn start(library: Arc<Mutex<Library>>) -> Self {
         let app_focused = Arc::new(AtomicBool::new(false));
@@ -91,7 +104,7 @@ fn automatic_typing_loop(
     app_focused: Arc<AtomicBool>,
     sender: Sender<InputEvent>,
 ) {
-    let mut enigo = match Enigo::new(&Settings::default()) {
+    let mut enigo = match Enigo::new(&enigo_settings()) {
         Ok(enigo) => enigo,
         Err(error) => {
             let _ = sender.send(InputEvent::Error(format!(
@@ -128,7 +141,7 @@ fn keyboard_loop(
     app_focused: Arc<AtomicBool>,
     sender: Sender<InputEvent>,
 ) {
-    let mut enigo = match Enigo::new(&Settings::default()) {
+    let mut enigo = match Enigo::new(&enigo_settings()) {
         Ok(enigo) => {
             let _ = sender.send(InputEvent::Ready);
             enigo
@@ -217,9 +230,7 @@ fn keyboard_loop(
     app_focused: Arc<AtomicBool>,
     sender: Sender<InputEvent>,
 ) {
-    let mut settings = Settings::default();
-    settings.event_source_user_data = Some(macos_hook::EVENT_MARKER);
-    let enigo = match Enigo::new(&settings) {
+    let enigo = match Enigo::new(&enigo_settings()) {
         Ok(enigo) => enigo,
         Err(error) => {
             let _ = sender.send(InputEvent::Error(format!(
@@ -237,9 +248,7 @@ fn keyboard_loop(
     app_focused: Arc<AtomicBool>,
     sender: Sender<InputEvent>,
 ) {
-    let mut settings = Settings::default();
-    settings.windows_dw_extra_info = Some(windows_hook::EVENT_MARKER);
-    let enigo = match Enigo::new(&settings) {
+    let enigo = match Enigo::new(&enigo_settings()) {
         Ok(enigo) => enigo,
         Err(error) => {
             let _ = sender.send(InputEvent::Error(format!(

@@ -1,4 +1,4 @@
-LiveCode Typer Demo — macOS — 0.3.3
+LiveCode Typer Demo — macOS — 0.3.4
 
 QUICK START
 1. Open LiveCode Typer Demo.app.

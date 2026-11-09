@@ -173,38 +173,48 @@ impl PortableApp {
         };
         let mut registered_hotkeys = Vec::new();
         let mut task_hotkeys = Vec::new();
-        match (
-            &manager,
-            parse_hotkeys(&library.hotkeys),
-            parse_demo_task_hotkeys(),
-        ) {
-            (Some(manager), Ok(mut bindings), Ok(tasks)) => {
+        match (&manager, parse_demo_task_hotkeys()) {
+            (Some(manager), Ok(tasks)) => {
+                let mut bindings = match parse_hotkeys(&library.hotkeys) {
+                    Ok(bindings) => bindings,
+                    Err(error) => {
+                        status = error;
+                        parse_hotkeys(&Hotkeys::default()).unwrap_or_default()
+                    }
+                };
                 let reserved = tasks
                     .iter()
                     .map(|(_, key)| key.id())
                     .collect::<HashSet<_>>();
-                let collision = bindings.iter().any(|(_, key)| reserved.contains(&key.id()));
+                let collisions = bindings
+                    .iter()
+                    .filter(|(_, key)| reserved.contains(&key.id()))
+                    .map(|(_, key)| format!("{key} (конфликт с заданиями Alt+1–7)"))
+                    .collect::<Vec<_>>();
                 bindings.retain(|(_, key)| !reserved.contains(&key.id()));
-                let mut keys = bindings.iter().map(|(_, key)| *key).collect::<Vec<_>>();
-                keys.extend(tasks.iter().map(|(_, key)| *key));
-                match manager.register_all(&keys) {
-                    Ok(()) => {
-                        registered_hotkeys = bindings;
-                        task_hotkeys = tasks;
-                        if collision {
-                            status = "Alt+1–7 заняты выбором заданий; конфликтующее сочетание настроек пропущено.".into();
-                        }
-                    }
-                    Err(error) => {
-                        status = format!("Горячие клавиши не зарегистрировались: {error}")
+
+                let mut unavailable = collisions;
+                for (action, key) in bindings {
+                    match manager.register(key) {
+                        Ok(()) => registered_hotkeys.push((action, key)),
+                        Err(error) => unavailable.push(format!("{key}: {error}")),
                     }
                 }
+                for (task_index, key) in tasks {
+                    match manager.register(key) {
+                        Ok(()) => task_hotkeys.push((task_index, key)),
+                        Err(error) => unavailable.push(format!("Alt+{}: {error}", task_index + 1)),
+                    }
+                }
+                if !unavailable.is_empty() {
+                    status = format!(
+                        "Некоторые сочетания не зарегистрированы: {}. Остальные работают.",
+                        unavailable.join("; ")
+                    );
+                }
             }
-            (Some(_), Err(error), _) | (None, Err(error), _) => status = error,
-            (_, _, Err(error)) => status = error,
-            (None, Ok(_), Ok(_)) => {
-                status = "Глобальные горячие клавиши недоступны в этой среде.".into()
-            }
+            (Some(_), Err(error)) => status = error,
+            (None, _) => status = "Глобальные горячие клавиши недоступны в этой среде.".into(),
         }
 
         let (editor_id, editor_revision, editor_name, editor_language, editor_text) =
@@ -213,23 +223,8 @@ impl PortableApp {
         let help_open = !library.onboarding_complete;
         let room_settings = library.room.clone();
         let library = Arc::new(Mutex::new(library));
-        let task_dispatch = task_hotkeys
-            .iter()
-            .map(|(task_index, key)| (key.id(), *task_index))
-            .collect::<Vec<_>>();
-        let hotkey_library = Arc::clone(&library);
         let hotkey_context = creation.egui_ctx.clone();
         GlobalHotKeyEvent::set_event_handler(Some(move |event: GlobalHotKeyEvent| {
-            if event.state() == HotKeyState::Pressed
-                && let Some((_, task_index)) = task_dispatch
-                    .iter()
-                    .find(|(key_id, _)| *key_id == event.id())
-            {
-                let mut library = hotkey_library
-                    .lock()
-                    .unwrap_or_else(|poisoned| poisoned.into_inner());
-                let _ = library.select_and_start(*task_index);
-            }
             let _ = hotkey_sender.send(event);
             hotkey_context.request_repaint();
         }));
@@ -494,25 +489,72 @@ impl PortableApp {
             .hotkey_manager
             .as_ref()
             .ok_or_else(|| "Глобальные сочетания клавиш недоступны в этой среде.".to_owned())?;
-        let old_keys = self
-            .registered_hotkeys
-            .iter()
-            .map(|(_, key)| *key)
-            .collect::<Vec<_>>();
-        let new_keys = next.iter().map(|(_, key)| *key).collect::<Vec<_>>();
-
-        manager
-            .unregister_all(&old_keys)
-            .map_err(|error| format!("Не удалось временно снять старые сочетания: {error}"))?;
-        if let Err(error) = manager.register_all(&new_keys) {
-            let _ = manager.unregister_all(&new_keys);
-            let _ = manager.register_all(&old_keys);
-            return Err(format!(
-                "Не удалось назначить новые сочетания; прежние восстановлены: {error}"
-            ));
+        let old = self.registered_hotkeys.clone();
+        let mut removed = Vec::new();
+        for (_, key) in old.iter().copied() {
+            if let Err(error) = manager.unregister(key) {
+                let mut restored = Vec::new();
+                let mut restore_errors = Vec::new();
+                for binding in old.iter().copied() {
+                    if removed.contains(&binding.1) {
+                        match manager.register(binding.1) {
+                            Ok(()) => restored.push(binding),
+                            Err(restore_error) => restore_errors.push(restore_error.to_string()),
+                        }
+                    } else {
+                        restored.push(binding);
+                    }
+                }
+                self.registered_hotkeys = restored;
+                let suffix = if restore_errors.is_empty() {
+                    String::new()
+                } else {
+                    format!(
+                        " Не все старые сочетания удалось вернуть: {}.",
+                        restore_errors.join("; ")
+                    )
+                };
+                return Err(format!(
+                    "Не удалось снять старое сочетание {key}: {error}.{suffix}"
+                ));
+            }
+            removed.push(key);
         }
 
-        self.registered_hotkeys = next;
+        let mut registered = Vec::new();
+        for binding in next.iter().copied() {
+            if let Err(error) = manager.register(binding.1) {
+                let mut rollback_errors = Vec::new();
+                for (_, key) in registered.iter().copied() {
+                    if let Err(rollback_error) = manager.unregister(key) {
+                        rollback_errors.push(rollback_error.to_string());
+                    }
+                }
+                let mut restored = Vec::new();
+                for old_binding in old.iter().copied() {
+                    match manager.register(old_binding.1) {
+                        Ok(()) => restored.push(old_binding),
+                        Err(restore_error) => rollback_errors.push(restore_error.to_string()),
+                    }
+                }
+                self.registered_hotkeys = restored;
+                let suffix = if rollback_errors.is_empty() {
+                    "Старые сочетания возвращены.".to_owned()
+                } else {
+                    format!(
+                        "Проверьте горячие клавиши в настройках: {}.",
+                        rollback_errors.join("; ")
+                    )
+                };
+                return Err(format!(
+                    "Не удалось назначить {0}: {error}. {suffix}",
+                    binding.1
+                ));
+            }
+            registered.push(binding);
+        }
+
+        self.registered_hotkeys = registered;
         let library_arc = Arc::clone(&self.library);
         let mut library = library_arc
             .lock()
@@ -869,6 +911,14 @@ impl PortableApp {
                 ui.label(
                     egui::RichText::new("Сочетания действуют в любом приложении.").color(MUTED),
                 );
+                if cfg!(windows) {
+                    ui.label(
+                        egui::RichText::new(
+                            "Windows резервирует Alt+Space для системного меню; используй Ctrl+Alt+Space.",
+                        )
+                        .color(MUTED),
+                    );
+                }
                 ui.add_space(6.0);
                 egui::ScrollArea::vertical()
                     .max_height(420.0)
@@ -1541,6 +1591,16 @@ fn parse_hotkeys(hotkeys: &Hotkeys) -> Result<Vec<(HotkeyAction, HotKey)>, Strin
     let mut seen = HashSet::new();
     let mut bindings = Vec::new();
     for (action, text) in entries {
+        let parts = text.split('+').map(str::trim).collect::<Vec<_>>();
+        let is_windows_alt_space = cfg!(windows)
+            && parts.len() == 2
+            && parts.iter().any(|part| part.eq_ignore_ascii_case("alt"))
+            && parts.iter().any(|part| part.eq_ignore_ascii_case("space"));
+        if is_windows_alt_space {
+            return Err(
+                "Windows резервирует Alt+Space для системного меню. Выберите Ctrl+Alt+Space или другое сочетание.".into(),
+            );
+        }
         let key = HotKey::from_str(text)
             .map_err(|error| format!("Сочетание «{text}» не распознано: {error}"))?;
         if !seen.insert(key.id()) {

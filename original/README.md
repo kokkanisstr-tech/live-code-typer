@@ -1,4 +1,4 @@
-# LiveCode Typer Portable 0.3.0
+# LiveCode Typer Portable 0.3.1
 
 Rust-версия LiveCode Typer для Windows и macOS. Приложение работает поверх любых полей ввода: редактора кода, IDE, браузера, Блокнота и обычных текстовых файлов. После включения печати любую клавишу можно нажимать как сигнал для следующего символа из выбранного текста. Пробелы и переходы строк приложение отправляет само.
 
@@ -103,7 +103,7 @@ cargo build --bins
 
 ```powershell
 ./verification/Verify-PortableServer.ps1 `
-  -ServerPath ./dist/live-code-typer-windows-x64-v0.3.0/live-code-room-server.exe
+  -ServerPath ./dist/live-code-typer-windows-x64-v0.3.1/live-code-room-server.exe
 ```
 
 Нужна Java 11 или новее. Модель проверяет границы курсора, соответствие напечатанного текста и блокировку закреплённого кода. Она дополняет E2E, но не заявляет формальное доказательство системного перехвата клавиатуры или графических интерфейсов ОС.

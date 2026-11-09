@@ -1,6 +1,6 @@
 [package]
 name = "live-code-typer"
-version = "0.3.0"
+version = "0.3.1"
 edition = "2024"
 rust-version = "1.95"
 description = "Portable LiveCode Typer desktop client and LAN room server"

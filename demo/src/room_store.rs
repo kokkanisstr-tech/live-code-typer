@@ -46,10 +46,16 @@ impl RoomStore {
                 .with_context(|| format!("Повреждён файл комнаты {}", file_path.display()))?
         } else if let Some(legacy_path) = legacy_room_file_path().filter(|path| path.is_file()) {
             let bytes = fs::read(&legacy_path).with_context(|| {
-                format!("Не удалось прочитать старую комнату {}", legacy_path.display())
+                format!(
+                    "Не удалось прочитать старую комнату {}",
+                    legacy_path.display()
+                )
             })?;
             serde_json::from_slice::<RoomState>(&bytes).with_context(|| {
-                format!("Не удалось перенести старую комнату {}", legacy_path.display())
+                format!(
+                    "Не удалось перенести старую комнату {}",
+                    legacy_path.display()
+                )
             })?
         } else {
             RoomState::new(String::new())

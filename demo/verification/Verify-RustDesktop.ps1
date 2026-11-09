@@ -2,7 +2,8 @@
     [Parameter(Mandatory = $true)]
     [string]$AppPath,
     [Parameter(Mandatory = $true)]
-    [string]$ServerPath
+    [string]$ServerPath,
+    [switch]$DemoHotkey
 )
 
 $ErrorActionPreference = 'Stop'
@@ -140,7 +141,7 @@ function Start-App {
         $script:appProcess.Refresh()
         $script:appProcess.HasExited -or
             ($script:appProcess.MainWindowHandle -ne [IntPtr]::Zero -and
-                $script:appProcess.MainWindowTitle -eq 'LiveCode Typer')
+                $script:appProcess.MainWindowTitle.StartsWith('LiveCode Typer', [System.StringComparison]::Ordinal))
     } | Out-Null
     if ($script:appProcess.HasExited) {
         throw "Приложение завершилось с кодом $($script:appProcess.ExitCode). Проверьте недостающие DLL среды выполнения."
@@ -382,6 +383,21 @@ try {
     }
     Write-Library -Text ("A B" + [char]10 + 'C')
     Start-App
+    if ($DemoHotkey) {
+        Start-TextTarget -OutputPath $firstOutput
+        Send-Combination -Modifiers ([byte[]](0x12)) -Key 0x31
+        try {
+            Wait-Until -TimeoutSeconds 8 -FailureMessage 'Alt+1 не напечатал задание в активном внешнем поле.' -Condition {
+                (Get-LibraryText -Path $firstOutput) -ceq ("A B" + [char]10 + 'C')
+            } | Out-Null
+        } catch {
+            $actual = Get-LibraryText -Path $firstOutput
+            $saved = Get-Data | ConvertTo-Json -Depth 10 -Compress
+            throw "Демо E2E Alt+1 и фонового набора: $($_.Exception.Message) Получено [$actual]; состояние [$saved]."
+        }
+        Write-Output 'PASS: Alt+1 запустил автоматический набор в активном внешнем окне; пробел и Enter введены.'
+        return
+    }
     $mainRoot = [System.Windows.Automation.AutomationElement]::FromHandle($appProcess.MainWindowHandle)
     $toggleButton = Wait-UiElement -Root $mainRoot -NameFragment 'Включить печать' -ControlType ([System.Windows.Automation.ControlType]::Button)
     $toggleButton.SetFocus()

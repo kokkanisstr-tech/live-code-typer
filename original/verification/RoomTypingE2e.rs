@@ -57,10 +57,7 @@ fn main() -> Result<(), String> {
 
     let mut library = Library::default();
     library.room = settings;
-    let start_result = library.apply_remote_assignment(
-        Some(&task),
-        ROOM_ASSIGNMENT_START_DELAY,
-    );
+    let start_result = library.apply_remote_assignment(Some(&task), ROOM_ASSIGNMENT_START_DELAY);
     if start_result != Some(InputAction::Started) || !library.automatic_typing {
         return Err("Receiving the assignment did not enable automatic typing.".into());
     }
@@ -88,13 +85,8 @@ fn main() -> Result<(), String> {
         return Err("A random key wrote text before the automatic typing started.".into());
     }
 
-    match input::type_next(
-        &mut sink,
-        &shared_library,
-        &mut cache,
-        InputMode::Automatic,
-    )
-    .map_err(|error| format!("Automatic countdown failed: {error}"))?
+    match input::type_next(&mut sink, &shared_library, &mut cache, InputMode::Automatic)
+        .map_err(|error| format!("Automatic countdown failed: {error}"))?
     {
         TypeResult::Idle => {}
         _ => return Err("The assignment started before the editor-switch delay elapsed.".into()),
@@ -107,20 +99,17 @@ fn main() -> Result<(), String> {
         .ok_or_else(|| "The assignment has no automatic start time.".to_owned())?;
     thread::sleep(start_at.saturating_duration_since(Instant::now()));
     loop {
-        match input::type_next(
-            &mut sink,
-            &shared_library,
-            &mut cache,
-            InputMode::Automatic,
-        )
-        .map_err(|error| format!("Automatic typing failed: {error}"))?
+        match input::type_next(&mut sink, &shared_library, &mut cache, InputMode::Automatic)
+            .map_err(|error| format!("Automatic typing failed: {error}"))?
         {
             TypeResult::Progress(InputEvent::Progress { .. }) => {}
             TypeResult::Idle => break,
             TypeResult::ConsumeSignal => {
                 return Err("Automatic typing returned a keyboard-only result.".into());
             }
-            TypeResult::Progress(_) => return Err("Unexpected input event from the typing core.".into()),
+            TypeResult::Progress(_) => {
+                return Err("Unexpected input event from the typing core.".into());
+            }
         }
     }
 
@@ -136,9 +125,9 @@ fn main() -> Result<(), String> {
         .map_err(|_| "Typing state lock was poisoned.".to_owned())?;
     if final_state.typing
         || final_state.automatic_typing
-        || final_state.selected().is_none_or(|snippet| {
-            snippet.cursor != snippet.grapheme_count() || !snippet.pinned
-        })
+        || final_state
+            .selected()
+            .is_none_or(|snippet| snippet.cursor != snippet.grapheme_count() || !snippet.pinned)
     {
         return Err("Automatic typing did not finish at the end of the pinned assignment.".into());
     }

@@ -57,15 +57,15 @@ jobs:
         shell: pwsh
         run: ./verification/Verify-DemoControls.ps1 -ProbePath "target/${{ matrix.target }}/release/examples/demo_controls_e2e.exe"
 
-      - name: Run portable-data migration E2E on Windows
-        if: runner.os == 'Windows'
-        shell: pwsh
-        run: ./verification/Verify-RustMigration.ps1 -AppPath "target/${{ matrix.target }}/release/live-code-typer-demo.exe"
-
       - name: Run room-data migration E2E on Windows
         if: runner.os == 'Windows'
         shell: pwsh
         run: ./verification/Verify-RustRoomMigration.ps1 -ServerPath "target/${{ matrix.target }}/release/live-code-room-server.exe"
+
+      - name: Run Alt+1 background typing E2E on Windows
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: ./verification/Verify-RustDesktop.ps1 -AppPath "target/${{ matrix.target }}/release/live-code-typer-demo.exe" -ServerPath "target/${{ matrix.target }}/release/live-code-room-server.exe" -DemoHotkey
 
       - name: Package Windows binaries
         if: runner.os == 'Windows'
@@ -108,7 +108,7 @@ jobs:
             <key>CFBundleIdentifier</key><string>org.livecodetyper.demo</string>
             <key>CFBundleName</key><string>LiveCode Typer Demo</string>
             <key>CFBundlePackageType</key><string>APPL</string>
-            <key>CFBundleVersion</key><string>0.3.3</string>
+            <key>CFBundleVersion</key><string>0.3.4</string>
             <key>LSMinimumSystemVersion</key><string>12.0</string>
             <key>NSHighResolutionCapable</key><true/>
           </dict>
