@@ -23,7 +23,7 @@ fn main() -> Result<(), String> {
         if snippet.name != format!("Задание {} · {}", index + 1, PREPARED_TASKS[index].0)
             || snippet.language != "C#"
             || !snippet.pinned
-            || snippet.code != PREPARED_TASKS[index].1
+            || snippet.code != core::normalize_newlines(PREPARED_TASKS[index].1)
         {
             return Err(format!(
                 "Prepared task {} is missing or editable.",
