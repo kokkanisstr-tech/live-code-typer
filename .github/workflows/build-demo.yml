@@ -128,7 +128,7 @@ jobs:
             <key>CFBundleIdentifier</key><string>org.livecodetyper.demo</string>
             <key>CFBundleName</key><string>LiveCode Typer Demo</string>
             <key>CFBundlePackageType</key><string>APPL</string>
-            <key>CFBundleVersion</key><string>0.3.4</string>
+            <key>CFBundleVersion</key><string>0.4.0</string>
             <key>LSMinimumSystemVersion</key><string>12.0</string>
             <key>NSHighResolutionCapable</key><true/>
           </dict>

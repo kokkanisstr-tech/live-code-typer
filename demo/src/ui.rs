@@ -12,7 +12,7 @@ use uuid::Uuid;
 
 use crate::{
     core::{
-        DEMO_TASK_COUNT, Hotkeys, InputAction, Library, ROOM_ASSIGNMENT_START_DELAY, Snippet,
+        DEMO_HOTKEY_COUNT, Hotkeys, InputAction, Library, ROOM_ASSIGNMENT_START_DELAY, Snippet,
         demo_task_hotkey,
     },
     input::{InputEvent, InputHub},
@@ -483,7 +483,7 @@ impl PortableApp {
                 .iter()
                 .any(|(_, task_key)| task_key.id() == key.id())
         }) {
-            return Err("Alt+1–7 зарезервированы для выбора семи заданий.".into());
+            return Err("Alt+1–7 зарезервированы для выбора первых семи заданий.".into());
         }
         let manager = self
             .hotkey_manager
@@ -654,7 +654,7 @@ impl PortableApp {
                         }
                     });
                 });
-                ui.label("1. Выбери задание: Alt+1–7 сразу включает соответствующий код.");
+                ui.label("1. Выбери любое из 25 заданий в списке. Alt+1–7 сразу включает первые семь.");
                 ui.label("2. Перейди в окно редактора и нажимай случайные клавиши — будет печататься выбранный код.");
                 ui.label(
                     "3. Кнопка мыши 4 переключает вперёд, кнопка 5 — назад. Активная печать не выключается.",
@@ -1616,7 +1616,7 @@ fn parse_hotkeys(hotkeys: &Hotkeys) -> Result<Vec<(HotkeyAction, HotKey)>, Strin
 }
 
 fn parse_demo_task_hotkeys() -> Result<Vec<(usize, HotKey)>, String> {
-    (1..=DEMO_TASK_COUNT)
+    (1..=DEMO_HOTKEY_COUNT)
         .map(|task_number| {
             let text = demo_task_hotkey(task_number)
                 .ok_or_else(|| format!("Не удалось создать клавишу задания №{task_number}."))?;

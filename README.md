@@ -3,7 +3,7 @@
 Two versions are included:
 
 - **Original** — portable desktop app and room server in original/.
-- **Demo** — separate copy with seven prepared C# tasks and Alt+1 through Alt+7 shortcuts in demo/.
+- **Demo** — separate copy with 25 prepared C# tasks and Alt+1 through Alt+7 shortcuts for the first seven in demo/.
 
 Download ready-to-run packages from [GitHub Releases](https://github.com/kokkanisstr-tech/live-code-typer/releases). Each package contains the app, room server, and a short start guide.
 
@@ -67,8 +67,8 @@ Version tags build Windows x64, macOS Intel, and Apple Silicon packages, run sup
     git tag original-v0.3.1
     git push origin original-v0.3.1
 
-    git tag demo-v0.3.4
-    git push origin demo-v0.3.4
+    git tag demo-v0.4.0
+    git push origin demo-v0.4.0
 
 ## Қазақша
 
@@ -82,7 +82,7 @@ Version tags build Windows x64, macOS Intel, and Apple Silicon packages, run sup
 
 ## Русский
 
-Основная программа находится в original/, демо с семью заданиями C# — в demo/. Готовые файлы скачиваются в Releases. В Windows распакуйте архив и запустите .exe, на Mac выберите .app для своего процессора.
+Основная программа находится в original/, демо с 25 заданиями C# — в demo/. Готовые файлы скачиваются в Releases. В Windows распакуйте архив и запустите .exe, на Mac выберите .app для своего процессора.
 
 Для установки из терминала скопируйте команду Windows или Mac выше. По умолчанию устанавливается основная версия; для демо укажите demo. Установщик скачивает последнюю версию, ставит её в пользовательскую папку и запускает.
 

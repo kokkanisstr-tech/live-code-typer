@@ -135,14 +135,41 @@ try {
     Remove-Item -LiteralPath $portableFile -Force
     Invoke-PortableMigration -Executable $resolvedApp -TargetFolder $portableFolder -SourceFolder $legacyFolder
     $isolatedDemo = Get-Content -Raw -LiteralPath $portableFile | ConvertFrom-Json
-    if ($isolatedDemo.snippets.Count -ne 7) {
-        throw 'The demo imported data from the original app instead of loading its own seven tasks.'
+    if ($isolatedDemo.snippets.Count -ne 25) {
+        throw 'The demo imported data from the original app instead of loading its own 25 tasks.'
     }
-    for ($index = 0; $index -lt 7; $index++) {
-        if ($isolatedDemo.snippets[$index].name -ne "Задание $($index + 1)") {
+    for ($index = 0; $index -lt 25; $index++) {
+        if (-not $isolatedDemo.snippets[$index].name.StartsWith("Задание $($index + 1) · ")) {
             throw 'The demo default task list changed while checking app-data isolation.'
         }
     }
+    $oldDemo = $isolatedDemo | ConvertTo-Json -Depth 20 | ConvertFrom-Json
+    $oldDemo.snippets = @($oldDemo.snippets | Select-Object -First 7) + @($converted.snippets[0])
+    $oldDemo.selected_id = $converted.snippets[0].id
+    $oldClasses = @('Kompyuter','Bagdarlama','Server','Paydalanushy','Fail','Derekqor','JelilikQurylgy')
+    $oldIds = @($oldDemo.snippets | Select-Object -First 7 | ForEach-Object { $_.id })
+    for ($index = 0; $index -lt 7; $index++) {
+        $oldDemo.snippets[$index].name = "Задание $($index + 1)"
+        $oldDemo.snippets[$index].code = "using System;`nclass $($oldClasses[$index]) {}"
+    }
+    [System.IO.File]::WriteAllText($portableFile, ($oldDemo | ConvertTo-Json -Depth 20), [System.Text.UTF8Encoding]::new($false))
+    Invoke-PortableMigration -Executable $resolvedApp -TargetFolder $portableFolder -SourceFolder $legacyFolder
+    $upgraded = Get-Content -Raw -LiteralPath $portableFile | ConvertFrom-Json
+    if ($upgraded.snippets.Count -ne 26 -or $upgraded.selected_id -ne $oldDemo.selected_id) {
+        throw 'Upgrading the seven-task demo lost the custom snippet or failed to add all 25 tasks.'
+    }
+    for ($index = 0; $index -lt 7; $index++) {
+        if ($upgraded.snippets[$index].id -ne $oldIds[$index] -or
+            -not $upgraded.snippets[$index].name.StartsWith("Задание $($index + 1) · ")) {
+            throw 'Upgrading an old prepared task did not preserve its identity.'
+        }
+    }
+    if ($upgraded.snippets[0].code -notmatch 'abstract class Lesson') {
+        throw 'The first task was not replaced with the new DOCX code.'
+    }
+    Invoke-PortableMigration -Executable $resolvedApp -TargetFolder $portableFolder -SourceFolder $legacyFolder
+    $upgradedAgain = Get-Content -Raw -LiteralPath $portableFile | ConvertFrom-Json
+    if ($upgradedAgain.snippets.Count -ne 26) { throw 'The task upgrade duplicated prepared snippets on second launch.' }
     if ((Get-FileHash -LiteralPath $legacyFile -Algorithm SHA256).Hash -ne $sourceHash) {
         throw 'The demo changed the original app data during the isolation check.'
     }

@@ -6,7 +6,8 @@ mod core;
 mod room;
 
 use core::{
-    DEMO_TASK_COUNT, InputAction, Library, demo_mouse_offset, demo_task_hotkey, navigate_demo_mouse,
+    DEMO_HOTKEY_COUNT, DEMO_TASK_COUNT, InputAction, Library, PREPARED_TASKS, demo_mouse_offset,
+    demo_task_hotkey, navigate_demo_mouse,
 };
 
 fn main() -> Result<(), String> {
@@ -19,21 +20,29 @@ fn main() -> Result<(), String> {
     }
     for index in 0..DEMO_TASK_COUNT {
         let snippet = &library.snippets[index];
-        if snippet.name != format!("Задание {}", index + 1)
+        if snippet.name != format!("Задание {} · {}", index + 1, PREPARED_TASKS[index].0)
             || snippet.language != "C#"
             || !snippet.pinned
-            || snippet.code.is_empty()
+            || snippet.code != PREPARED_TASKS[index].1
         {
             return Err(format!(
                 "Prepared task {} is missing or editable.",
                 index + 1
             ));
         }
-        if demo_task_hotkey(index + 1).as_deref() != Some(format!("Alt+{}", index + 1).as_str()) {
+        if index < DEMO_HOTKEY_COUNT
+            && demo_task_hotkey(index + 1).as_deref() != Some(format!("Alt+{}", index + 1).as_str())
+        {
             return Err(format!("Alt+{} does not map to its task.", index + 1));
         }
+        if index >= DEMO_HOTKEY_COUNT && demo_task_hotkey(index + 1).is_some() {
+            return Err(format!(
+                "Task {} unexpectedly has a numeric hotkey.",
+                index + 1
+            ));
+        }
     }
-    if demo_task_hotkey(0).is_some() || demo_task_hotkey(DEMO_TASK_COUNT + 1).is_some() {
+    if demo_task_hotkey(0).is_some() || demo_task_hotkey(DEMO_HOTKEY_COUNT + 1).is_some() {
         return Err("Task shortcuts accept an out-of-range number.".into());
     }
     if demo_mouse_offset(4) != Some(1)
@@ -49,7 +58,7 @@ fn main() -> Result<(), String> {
     }
     if library
         .selected()
-        .is_none_or(|snippet| snippet.name != "Задание 1")
+        .is_none_or(|snippet| !snippet.name.starts_with("Задание 1 · "))
     {
         return Err("Inactive mouse navigation changed the selected task.".into());
     }
@@ -70,7 +79,7 @@ fn main() -> Result<(), String> {
     if !library.typing_state.is_active()
         || library
             .selected()
-            .is_none_or(|snippet| snippet.name != "Задание 4")
+            .is_none_or(|snippet| !snippet.name.starts_with("Задание 4 · "))
     {
         return Err("The first forward mouse press stopped typing or missed task 4.".into());
     }
@@ -80,7 +89,7 @@ fn main() -> Result<(), String> {
     if !library.typing_state.is_active()
         || library
             .selected()
-            .is_none_or(|snippet| snippet.name != "Задание 5")
+            .is_none_or(|snippet| !snippet.name.starts_with("Задание 5 · "))
     {
         return Err("Two forward mouse presses did not keep typing on task 5.".into());
     }
@@ -90,7 +99,7 @@ fn main() -> Result<(), String> {
     if !library.typing_state.is_active()
         || library
             .selected()
-            .is_none_or(|snippet| snippet.name != "Задание 4")
+            .is_none_or(|snippet| !snippet.name.starts_with("Задание 4 · "))
     {
         return Err("The backward mouse press stopped typing or missed task 4.".into());
     }
@@ -98,7 +107,7 @@ fn main() -> Result<(), String> {
     if !library.typing_state.is_active()
         || library
             .selected()
-            .is_none_or(|snippet| snippet.name != "Задание 7")
+            .is_none_or(|snippet| !snippet.name.starts_with("Задание 7 · "))
     {
         return Err("Alt+7 did not switch to task 7 while keeping typing active.".into());
     }
@@ -110,20 +119,21 @@ fn main() -> Result<(), String> {
     {
         return Err("Switching tasks lost the previous task's cursor.".into());
     }
+    library.select_and_start(DEMO_TASK_COUNT - 1);
     if !navigate_demo_mouse(&mut library, 4)
         || library
             .selected()
-            .is_none_or(|snippet| snippet.name != "Задание 1")
+            .is_none_or(|snippet| !snippet.name.starts_with("Задание 1 · "))
         || !navigate_demo_mouse(&mut library, 5)
         || library
             .selected()
-            .is_none_or(|snippet| snippet.name != "Задание 7")
+            .is_none_or(|snippet| !snippet.name.starts_with("Задание 25 · "))
     {
-        return Err("Mouse navigation did not wrap safely between task 7 and task 1.".into());
+        return Err("Mouse navigation did not wrap safely between task 25 and task 1.".into());
     }
 
     println!(
-        "PASS: seven pinned C# tasks, Alt+1–7 mapping, active-only mouse 4/5 selection, cursor retention, and wraparound are verified headlessly."
+        "PASS: 25 pinned C# tasks from the DOCX, Alt+1–7 mapping, active-only mouse 4/5 selection, cursor retention, and wraparound are verified headlessly."
     );
     Ok(())
 }

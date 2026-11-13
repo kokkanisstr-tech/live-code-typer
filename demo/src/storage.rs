@@ -97,37 +97,69 @@ pub fn load() -> Result<Library> {
 }
 
 fn refresh_prepared_tasks(library: &mut Library) -> bool {
-    if library.snippets.len() < DEMO_TASK_COUNT
-        || library
-            .snippets
-            .iter()
-            .take(DEMO_TASK_COUNT)
-            .enumerate()
-            .any(|(index, snippet)| {
-                snippet.name != format!("Задание {}", index + 1) || snippet.is_remote_assignment
-            })
-    {
+    // Old demo libraries contain seven pinned snippets with these class names.
+    // Match both name and class to avoid replacing a user's own snippet.
+    const OLD_CLASSES: [&str; 7] = [
+        "class Kompyuter",
+        "class Bagdarlama",
+        "class Server",
+        "class Paydalanushy",
+        "class Fail",
+        "class Derekqor",
+        "class JelilikQurylgy",
+    ];
+    let prepared = Library::default();
+    let has_prepared_tasks = library.snippets.iter().any(|snippet| {
+        !snippet.is_remote_assignment
+            && snippet.remote_key.is_none()
+            && snippet.pinned
+            && (prepared
+                .snippets
+                .iter()
+                .any(|task| snippet.name == task.name && snippet.code == task.code)
+                || OLD_CLASSES.iter().enumerate().any(|(index, class_name)| {
+                    snippet.name == format!("Задание {}", index + 1)
+                        && snippet.code.contains(class_name)
+                }))
+    });
+    if !has_prepared_tasks {
         return false;
     }
-
-    let prepared = Library::default();
+    let previous_order: Vec<_> = library.snippets.iter().map(|snippet| snippet.id).collect();
+    let mut remaining = std::mem::take(&mut library.snippets);
+    let mut result = Vec::with_capacity(remaining.len().max(DEMO_TASK_COUNT));
     let mut changed = false;
-    for (snippet, replacement) in library
-        .snippets
-        .iter_mut()
-        .take(DEMO_TASK_COUNT)
-        .zip(prepared.snippets)
-    {
-        changed |= snippet.set_code(&replacement.code);
-        if snippet.language != replacement.language {
-            snippet.language = replacement.language;
-            changed = true;
-        }
-        if !snippet.pinned {
-            snippet.pinned = true;
+    for (index, replacement) in prepared.snippets.into_iter().enumerate() {
+        let legacy_name = format!("Задание {}", index + 1);
+        let position = remaining.iter().position(|snippet| {
+            if snippet.is_remote_assignment || snippet.remote_key.is_some() || !snippet.pinned {
+                return false;
+            }
+            (snippet.name == replacement.name && snippet.code == replacement.code)
+                || (index < OLD_CLASSES.len()
+                    && snippet.name == legacy_name
+                    && snippet.code.contains(OLD_CLASSES[index]))
+        });
+        if let Some(position) = position {
+            let mut snippet = remaining.remove(position);
+            if snippet.name != replacement.name {
+                snippet.name = replacement.name;
+                changed = true;
+            }
+            if snippet.language != replacement.language {
+                snippet.language = replacement.language;
+                changed = true;
+            }
+            changed |= snippet.set_code(&replacement.code);
+            result.push(snippet);
+        } else {
+            result.push(replacement);
             changed = true;
         }
     }
+    result.extend(remaining);
+    changed |= result.iter().map(|snippet| snippet.id).collect::<Vec<_>>() != previous_order;
+    library.snippets = result;
     changed
 }
 

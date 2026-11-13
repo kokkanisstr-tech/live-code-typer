@@ -11,7 +11,7 @@ $output = $outputLines -join "`n"
 if ($exitCode -ne 0) {
     throw "Demo controls E2E failed with exit code $exitCode."
 }
-if ($output -notmatch 'PASS: seven pinned C# tasks') {
+if ($output -notmatch 'PASS: 25 pinned C# tasks') {
     throw "Demo controls E2E returned an unexpected result: $output"
 }
 Write-Output $output
