@@ -32,7 +32,7 @@ $headers = @{
 $releases = Invoke-RestMethod -Uri "https://api.github.com/repos/$repository/releases?per_page=100" -Headers $headers
 $release = $releases |
     Where-Object { $_.tag_name -like "$variantKey-v*" -and -not $_.draft -and -not $_.prerelease -and $_.published_at } |
-    Sort-Object { [DateTimeOffset]::Parse($_.published_at) } -Descending |
+    Sort-Object -Property published_at -Descending |
     Select-Object -First 1
 
 if (-not $release) {
