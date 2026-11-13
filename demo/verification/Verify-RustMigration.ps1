@@ -170,12 +170,27 @@ try {
     Invoke-PortableMigration -Executable $resolvedApp -TargetFolder $portableFolder -SourceFolder $legacyFolder
     $upgradedAgain = Get-Content -Raw -LiteralPath $portableFile | ConvertFrom-Json
     if ($upgradedAgain.snippets.Count -ne 26) { throw 'The task upgrade duplicated prepared snippets on second launch.' }
+    $customOnly = $converted | ConvertTo-Json -Depth 20 | ConvertFrom-Json
+    $customOnly.onboarding_complete = $true
+    [System.IO.File]::WriteAllText($portableFile, ($customOnly | ConvertTo-Json -Depth 20), [System.Text.UTF8Encoding]::new($false))
+    Invoke-PortableMigration -Executable $resolvedApp -TargetFolder $portableFolder -SourceFolder $legacyFolder
+    $restored = Get-Content -Raw -LiteralPath $portableFile | ConvertFrom-Json
+    if ($restored.snippets.Count -ne 27 -or $restored.selected_id -ne $selectedId.ToString()) {
+        throw 'Adding prepared tasks to a previously used custom-only demo lost user data.'
+    }
+    if (@($restored.snippets | Where-Object { $_.id -eq $selectedId.ToString() }).Count -ne 1) {
+        throw 'The selected custom snippet was duplicated or removed.'
+    }
+    Invoke-PortableMigration -Executable $resolvedApp -TargetFolder $portableFolder -SourceFolder $legacyFolder
+    $restoredAgain = Get-Content -Raw -LiteralPath $portableFile | ConvertFrom-Json
+    if ($restoredAgain.snippets.Count -ne 27) { throw 'Refreshing custom-only data duplicated prepared tasks.' }
     if ((Get-FileHash -LiteralPath $legacyFile -Algorithm SHA256).Hash -ne $sourceHash) {
         throw 'The demo changed the original app data during the isolation check.'
     }
 
     Write-Output 'PASS: older demo data retains Unicode, newlines, cursor position, pin lock, shortcuts and room settings.'
     Write-Output 'PASS: migration is repeatable and the demo stays separate from the original app library.'
+    Write-Output 'PASS: previously used custom-only demo data receives 25 tasks while preserving custom snippets.'
 }
 finally {
     Get-ChildItem -LiteralPath $portableFolder -Force -ErrorAction SilentlyContinue |

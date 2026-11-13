@@ -122,7 +122,9 @@ fn refresh_prepared_tasks(library: &mut Library) -> bool {
                         && snippet.code.contains(class_name)
                 }))
     });
-    if !has_prepared_tasks {
+    // A used demo can contain only personal snippets after its prepared tasks
+    // were deleted. Restore the prepared set without discarding those snippets.
+    if !has_prepared_tasks && !library.onboarding_complete {
         return false;
     }
     let previous_order: Vec<_> = library.snippets.iter().map(|snippet| snippet.id).collect();
